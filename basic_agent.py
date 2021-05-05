@@ -1,41 +1,39 @@
-import cv2
 import matplotlib.pyplot as plt
 from statistics import mode
 import random
 import numpy as np
-import copy
-from dataclasses import dataclass
+from PIL import Image
 
 
-# used to quickly locate the cluster information of a given pixel
-@dataclass
-class clu:
-    r: int
-    g: int
-    b: int
-    cluster: int
+class Cell:
+    def __init__(self, classifier, red, green, blue):
+        # mine
+        self.classifier = classifier
+        # The red value of a pixel
+        self.red = red
+        # The green value of a pixel
+        self.green = green
+        # The blue value of a pixel
+        self.blue = blue
 
 
 def basic_agent():
-    image = cv2.imread('beach.jpg')
+    image = Image.open('beach.jpg')
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
     middle = int(len(image[0]) / 2)
     left_half = image[:, :middle]
     right_half = image[:, middle:]
 
-    left_copy = copy.deepcopy(left_half)
-    right_copy = copy.deepcopy(right_half)
-
     # recolor the right side by finding 6 most similar in testing data
 
-    centers, cluster_list = k_classification(left_copy)
+    centers, cluster_list = k_classification(left_half)
     # FINAL OUTPUT FOR LEFT (representative colors)
-    colored_left = np.copy(recolor_left(left_copy, centers, cluster_list))
+    colored_left = np.copy(recolor_left(left_half, centers, cluster_list))
 
-    grayed_left = convert_to_grayscale(left_copy)[0]
+    grayed_left = convert_to_grayscale(left_half)[0]
 
-    grayed_right, duplicate = convert_to_grayscale(right_copy)
+    grayed_right, duplicate = convert_to_grayscale(right_half)
 
     grayed_left_pixel_patch = three_by_three_pixel_patches(grayed_left)
 
@@ -123,7 +121,7 @@ def reformat(arr):
     cluster_list = np.empty((len(arr), len(arr[0])), dtype=object)
     for i in range(len(arr)):
         for j in range(len(arr[0])):
-            temp = clu(arr[i][j][0], arr[i][j][1], arr[i][j][2], -1)
+            temp = Cell(-1, arr[i][j][0], arr[i][j][1], arr[i][j][2], )
             cluster_list[i][j] = temp
     return cluster_list
 
@@ -204,12 +202,12 @@ def convert_to_grayscale(jpg):
 # get all of the 3x3 patches in an image
 def three_by_three_pixel_patches(jpg):
     pixel_patch_list = []
-    # iterate through grayleft
+    # iterate through left gray patch
     # iterate through rows
     for x in range(1, len(jpg) - 1):
         # iterate through columns
         for y in range(1, len(jpg[0]) - 1):
-            # grayleft[i][j] starts on middle pixel
+            # grayed_left[i][j] starts on middle pixel
             # find the rest of the patch (adjacent pixels)
             pixel_patch_list.append((jpg[x - 1:x + 2, y - 1:y + 2], (x, y)))
 
