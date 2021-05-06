@@ -7,101 +7,118 @@ from PIL import Image
 
 class Cell:
     def __init__(self, classifier, red, green, blue):
-        # mine
+        # THE CLASSIFIER OF A CLUSTER
         self.classifier = classifier
-        # The red value of a pixel
+
+        # THE RED VALUE OF A PIXEL FORM 0<X<255
         self.red = red
-        # The green value of a pixel
+
+        # THE GREEN VALUE OF A PIXEL FORM 0<X<255
         self.green = green
-        # The blue value of a pixel
+
+        # THE BLUE VALUE OF A PIXEL FORM 0<X<255
         self.blue = blue
 
 
 def basic_agent():
     image = Image.open('beach.jpg')
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image_2 = image.convert('L', (0.21, 0.72, 0.07, 0))
 
-    middle = int(len(image[0]) / 2)
-    left_half = image[:, :middle]
+    middle = int(len(image_2[0]) / 2)
     right_half = image[:, middle:]
+    left_half = image[:, :middle]
 
-    # recolor the right side by finding 6 most similar in testing data
-
+    # START COLORING RIGHT SIDE USING THE 6 CLUSTERS
+    # CREATE A CLUSTER LIST
     centers, cluster_list = k_classification(left_half)
-    # FINAL OUTPUT FOR LEFT (representative colors)
-    colored_left = np.copy(recolor_left(left_half, centers, cluster_list))
 
-    grayed_left = convert_to_grayscale(left_half)[0]
+    # RECOLOR THE LEFT HAND SIDE OF THE IMAGE
+    for a in range(0, len(left_half)):
+        for b in range(0, len(left_half[0])):
+            left_half[a][b] = centers[cluster_list[a][b].classifier]
+    colored_left = np.copy(left_half)
 
-    grayed_right, duplicate = convert_to_grayscale(right_half)
+    left_is_greyed = convert_to_grayscale(left_half)[0]
 
-    grayed_left_pixel_patch = three_by_three_pixel_patches(grayed_left)
+    right_is_greyed, duplicate = convert_to_grayscale(right_half)
 
-    tracker = 0
-
-    # iterate through testing
-    # iterate through rows
-    for i in range(1, len(grayed_right) - 1):
+    pixel_patch_list = []
+    # ITERATE THROUGH LEFT GRAY AREA
+    for x in range(1, len(left_is_greyed) - 1):
         # iterate through columns
-        for j in range(1, len(grayed_right[0]) - 1):
-            min1, min2, min3, min4, min5, min6 = 1000, 1000, 1000, 1000, 1000, 1000
+        for y in range(1, len(left_is_greyed[0]) - 1):
+            # grayed_left[i][j] starts on middle pixel
+            # find the rest of the patch (adjacent pixels)
+            pixel_patch_list.append((left_is_greyed[x - 1:x + 2, y - 1:y + 2], (x, y)))
+
+    grayed_left_pixel_patch = pixel_patch_list
+
+    for i in range(1, len(right_is_greyed) - 1):
+        # iterate through columns
+        for j in range(1, len(right_is_greyed[0]) - 1):
+            # THIS WILL LOCATE 6 PIXEL PATCHES
             patch_list = [[], [], [], [], [], []]
-            # find six patches
 
-            # take a sample from the total training data to compare with test data
+            # RANDOM TRAINING DATA IS TAKEN
             # the higher the number the better the resulting image quality
-            samples = random.sample(list(grayed_left_pixel_patch), 1000)
-
-            for k in samples:
-                dist = find_dist(k[0], grayed_right[i - 1:i + 2, j - 1:j + 2])
-                if dist < min1:
-                    min1 = dist
+            training_data_samples = random.sample(list(grayed_left_pixel_patch), 1000)
+            x1 = 2000
+            x2 = 2000
+            x3 = 2000
+            x4 = 2000
+            x5 = 2000
+            x6 = 2000
+            for z in training_data_samples:
+                # EUCLIDEAN DISTANCE FOUND FOR TEST DATA
+                distance = np.linalg.norm((z[0] - right_is_greyed[i - 1:i + 2, j - 1:j + 2]))
+                # TRAINING DATA IS COMPARED WITH TEST DATA
+                if x1 < distance:
+                    x1 = distance
                     patch_list[1] = patch_list[0]
-                    patch_list[0] = k[1]
+                    patch_list[0] = z[1]
                     continue
-                if dist < min2:
-                    min2 = dist
+                # TRAINING DATA IS COMPARED WITH TEST DATA
+                if x2 < distance:
+                    x2 = distance
                     patch_list[2] = patch_list[1]
-                    patch_list[1] = k[1]
+                    patch_list[1] = z[1]
                     continue
-                if dist < min3:
-                    min3 = dist
+                # TRAINING DATA IS COMPARED WITH TEST DATA
+                if x3 < distance:
+                    x3 = distance
                     patch_list[3] = patch_list[2]
-                    patch_list[2] = k[1]
+                    patch_list[2] = z[1]
                     continue
-                if dist < min4:
-                    min4 = dist
+                # TRAINING DATA IS COMPARED WITH TEST DATA
+                if x4 < distance:
+                    x4 = distance
                     patch_list[4] = patch_list[3]
-                    patch_list[3] = k[1]
+                    patch_list[3] = z[1]
                     continue
-                if dist < min5:
-                    min5 = dist
+                # TRAINING DATA IS COMPARED WITH TEST DATA
+                if x5 < distance:
+                    min5 = distance
                     patch_list[5] = patch_list[4]
-                    patch_list[4] = k[1]
+                    patch_list[4] = z[1]
                     continue
-                if dist < min6:
-                    min6 = dist
-                    patch_list[5] = k[1]
+                # TRAINING DATA IS COMPARED WITH TEST DATA
+                if x6 < distance:
+                    x6 = distance
+                    patch_list[5] = z[1]
                     continue
 
-                # get color of 6 middel pixels
+                # THIS LOOP CAPTURE THE MIDDLE COLOR OF THE 6 PIXELS
             for a in range(0, len(patch_list)):
                 x = patch_list[a][1]
                 y = patch_list[a][0]
 
-                # replace the patches/coordinates we got with the colors they represent
-                patch_list[a] = cluster_list[y][x].cluster
+                # THE PATCHES WILL BE REPLACED INTO THE COLORS THAT REPRESENT THEM
+                patch_list[a] = cluster_list[y][x].classifier
 
-            try:
-                freq = mode(patch_list)
-                duplicate[i][j] = centers[freq]
-            finally:
-                x = random.randint(0, len(patch_list) - 1)
-                tie = patch_list[x]
-                duplicate[i][j] = centers[tie]
+            if mode(patch_list) != 0:
+                duplicate[i][j] = centers[mode(patch_list)]
 
-            tracker += 1
-        print(tracker / (len(grayed_right) * len(grayed_right[0])) * 100, "%")
+            duplicate[i][j] = centers[patch_list[random.randint(0, len(patch_list) - 1)]]
 
     plt.imshow(colored_left)
     plt.show()
@@ -110,63 +127,55 @@ def basic_agent():
     plt.show()
 
 
-# calculate the euclidean distance
-def find_dist(a, b):
-    dist = np.linalg.norm(a - b)
-    return dist
-
-
-# turn the image format to [r,g,b,cluster] for later convenience
-def reformat(arr):
-    cluster_list = np.empty((len(arr), len(arr[0])), dtype=object)
-    for i in range(len(arr)):
-        for j in range(len(arr[0])):
-            temp = Cell(-1, arr[i][j][0], arr[i][j][1], arr[i][j][2], )
-            cluster_list[i][j] = temp
-    return cluster_list
-
-
-# the kmeans algorithm to find the centroids of our image data
+# k-NN CLASSIFICATION FOR PRE-CLUSTERED COLORS
 def k_classification(arr):
     a = []
-    # generates 5 random points
+    # CREATE 5 ARBITRARY POINTS
     for i in range(5):
         a.append(list(arr[random.randint(0, len(arr) - 1)][random.randint(0, len(arr[0]) - 1)]))
 
     x = 0
 
-    cluster_list = reformat(arr)
+    # WIll REFORMAT THE IMAGE ARRAY
+    cluster_list = np.empty((len(arr), len(arr[0])), dtype=object)
+    for i in range(len(arr)):
+        for j in range(len(arr[0])):
+            temp = Cell(-1, arr[i][j][0], arr[i][j][1], arr[i][j][2], )
+            cluster_list[i][j] = temp
+
     while x != 15:
-        temp = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
+        arr2 = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]
         counter = [0, 0, 0, 0, 0]
         x = 0
 
-        # goes through every pixel
+        # DOUBLE FOR LOOP TO ITERATE THROUGH EACH PIXEL
         for y in range(len(arr)):
             for x in range(len(arr[0])):
                 # print("x", x, "y", y)
                 min_distance = 3000
-                cluster = -1
+                new_cluster = -1
 
                 for j in range(5):
-                    # finding the closest centroid
-                    updated = find_dist(arr[y][x], a[j])
+                    # UPDATE DISTANCE WITH EUCLIDEAN DISTANCE
+                    updated = np.linalg.norm((arr[y][x] - a[j]))
+                    # IF THE LATEST DISTANCE IS LESS THAN MINIMUM DISTANCE OF 3000
                     if updated < min_distance:
+                        # MINIMUM DISTANCE IS NOW THE LATEST DISTANCE
                         min_distance = updated
-                        cluster = j
+                        new_cluster = j
 
-                # tag the pixel
-                cluster_list[y][x].cluster = cluster
-                # add to the array of sums
-                temp[cluster][0] += cluster_list[y][x].r
-                temp[cluster][1] += cluster_list[y][x].g
-                temp[cluster][2] += cluster_list[y][x].b
-                temp[cluster] += 1
-        # finds the average
+                # THE CLASSIFIER CHANGES TO THE NEW CLUSTER
+                cluster_list[y][x].classifier = new_cluster
+                # ADD THAT NEW CLUSTER TO THE CLUSTER LIST VALUES
+                arr2[new_cluster][0] += cluster_list[y][x].red
+                arr2[new_cluster][1] += cluster_list[y][x].green
+                arr2[new_cluster][2] += cluster_list[y][x].blue
+                arr2[new_cluster] += 1
+
         for i in range(5):
             for j in range(3):
                 if counter[i] != 0:
-                    avg = int(temp[i][j] / counter[j])
+                    avg = int(arr2[i][j] / counter[j])
                 else:
                     avg = 0
                 if abs(avg - a[i][j]) > 5:
@@ -177,38 +186,15 @@ def k_classification(arr):
     return a, cluster_list
 
 
-# recolor the left image in terms of representative colors
-def recolor_left(left, center, cluster_list):
-    for a in range(0, len(left)):
-        for b in range(0, len(left[0])):
-            left[a][b] = center[cluster_list[a][b].cluster]
-
-    return left
-
-
-# a method to turn an image to grayscale
+# TURNING AN IMAGE TO A GRAYSCALE
 def convert_to_grayscale(jpg):
-    # recolor each pixel
+    # COLOR IN EACH PIXEL
     jpg_copy = np.copy(jpg)
     jpg = jpg.tolist()
-    for i in range(0, len(jpg)):
-        for j in range(0, len(jpg[i])):
+    for i in range(len(jpg)):
+        for j in range(len(jpg[i])):
+            # UPDATING PROPER RED, GREEN, AND BLUE VALUES WITH
             jpg[i][j] = 0.21 * jpg[i][j][0] + 0.72 * jpg[i][j][1] + 0.07 * jpg[i][j][2]
             jpg_copy[i][j] = 0.21 * jpg[i][j][0] + 0.72 * jpg[i][j][1] + 0.07 * jpg[i][j][2]
 
     return np.array(jpg), jpg_copy
-
-
-# get all of the 3x3 patches in an image
-def three_by_three_pixel_patches(jpg):
-    pixel_patch_list = []
-    # iterate through left gray patch
-    # iterate through rows
-    for x in range(1, len(jpg) - 1):
-        # iterate through columns
-        for y in range(1, len(jpg[0]) - 1):
-            # grayed_left[i][j] starts on middle pixel
-            # find the rest of the patch (adjacent pixels)
-            pixel_patch_list.append((jpg[x - 1:x + 2, y - 1:y + 2], (x, y)))
-
-    return pixel_patch_list
