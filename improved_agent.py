@@ -68,10 +68,7 @@ def regression_agent(image, image_pixels, grey_image, color_channel):
     # get the patches to train upon
     patches = get_patches(image, grey_image, color_channel)
 
-    # for patch in patches:
-    #     weights = run_new_model(weights, patch)
-
-    trials = 100000
+    trials = 1000000
 
     for i in range(trials):
 
